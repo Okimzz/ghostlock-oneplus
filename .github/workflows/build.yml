@@ -1,0 +1,34 @@
+name: Build GhostLock
+
+on:
+  workflow_dispatch: # Mengizinkan eksekusi manual
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26b # Versi NDK yang stabil
+
+      - name: Compile GhostLock Binary
+        run: |
+          NDK=${{ steps.setup-ndk.outputs.ndk-path }}
+          "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang" \
+          -O2 -Wall -Isrc/core -Isrc/devices -DTARGET_CONFIG_H=\"target.h\" \
+          src/core/main.c src/core/util.c src/core/slide.c \
+          src/core/fops.c src/core/pipe_physrw.c src/core/root.c \
+          src/core/miniadb.c src/core/umh_root.c \
+          -o ./ghostlock -fPIE -pie -pthread
+
+      - name: Upload Compiled Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghostlock-binary
+          path: ./ghostlock
